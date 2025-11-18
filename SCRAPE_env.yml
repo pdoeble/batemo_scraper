@@ -9,3 +9,4 @@ dependencies:
   - lxml
   - sqlalchemy
   - pydantic
+  - psycopg2
