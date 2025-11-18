@@ -17,11 +17,11 @@ SQLITE_PATH = BASE_DIR / "data" / "batemo_cells.sqlite"
 # Postgres-Verbindung (HIER DEINE DATEN EINTRAGEN ODER PER ENV-VARS)
 # -----------------------------------------------------------
 
-PG_HOST = "XXX.net"          # <- anpassen
+PG_HOST = "simdb-dev-db.amg.cloud.corpintra.net"
 PG_PORT = 5432
-PG_DBNAME = "ThermoExpress"  # <- anpassen, falls anders
-PG_USER = "XXX"              # <- anpassen
-PG_PASSWORD = "XXX"          # <- anpassen
+PG_DBNAME = "ThermoExpress"
+PG_USER = "pdoeble"
+PG_PASSWORD = "@vZC75Q5hDcC"
 
 
 # -----------------------------------------------------------
