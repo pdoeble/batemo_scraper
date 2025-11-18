@@ -5,14 +5,15 @@ import requests
 from bs4 import BeautifulSoup
 
 
+# Basis-URL des Batemo Cell Explorers
 BASE_URL = "https://www.batemo.com/products/batemo-cell-explorer/"
 MODE = "normal"
 VIEW = "power-vs-energy-gravimetric"
 
-# Ausgabedatei mit allen gefundenen Detail-URLs (eine pro Zeile)
+# Ausgabedatei für alle gefundenen Zell-Detail-URLs
 OUTPUT_PATH = "data/cell_urls.txt"
 
-# Ganz einfacher Header, damit wir nicht wie ein No-Name-Bot aussehen
+# Minimaler Header, damit wir nicht wie ein namenloser Bot aussehen
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; BatemoScraper/0.1; +local-use-only)"
 }
@@ -20,10 +21,10 @@ HEADERS = {
 
 def build_listing_url(page: int) -> str:
     """
-    Baut die URL für die Listing-Seiten des Batemo Cell Explorers.
+    Baut die URL für die Listing-Seiten.
 
-    Seite 1 hat keinen product-page-Parameter,
-    ab Seite 2 verwenden sie ?product-page=2 usw.
+    Seite 1: ohne product-page-Parameter.
+    Seite >=2: product-page=<n>.
     """
     if page <= 1:
         return f"{BASE_URL}?mode={MODE}&view={VIEW}"
@@ -35,8 +36,10 @@ def extract_cell_urls_from_html(html: str) -> list[str]:
     """
     Extrahiert alle Detail-URLs von Zellen aus einer Listing-Seite.
 
-    Strategie: Suche alle <a>-Tags mit href, deren Pfad
-    mit '/products/batemo-cell-explorer/' beginnt.
+    Strategie:
+    - Suche alle <a>-Tags mit href.
+    - Filtere auf Pfade, die mit '/products/batemo-cell-explorer/' beginnen.
+    - Wandle alle URLs in absolute URLs um.
     """
     soup = BeautifulSoup(html, "lxml")
     urls: list[str] = []
@@ -46,11 +49,10 @@ def extract_cell_urls_from_html(html: str) -> list[str]:
         if not href:
             continue
 
-        # Absolut-/Relativ-URL vereinheitlichen
+        # Relativ vs. absolut vereinheitlichen
         parsed = urlparse(href)
         path = parsed.path if parsed.netloc else href
 
-        # Nur Produktseiten des Cell Explorers
         if path.startswith("/products/batemo-cell-explorer/"):
             full_url = urljoin(BASE_URL, href)
             urls.append(full_url)
@@ -60,11 +62,11 @@ def extract_cell_urls_from_html(html: str) -> list[str]:
 
 def collect_all_cell_urls() -> list[str]:
     """
-    Läuft über alle Seiten des Explorers und sammelt die Detail-URLs.
+    Läuft über alle Seiten des Explorers und sammelt Detail-URLs.
 
-    Abbruchkriterium:
-      - Wenn auf einer Seite keine neuen Zellen-URLs mehr gefunden werden,
-        brechen wir ab (Ende der Pagination).
+    Abbruchkriterien:
+    - HTTP 404 -> keine Seite mehr.
+    - oder: auf einer Seite werden keine neuen URLs mehr gefunden.
     """
     seen: set[str] = set()
     page = 1
@@ -82,7 +84,7 @@ def collect_all_cell_urls() -> list[str]:
 
         page_urls = extract_cell_urls_from_html(resp.text)
 
-        # Nur neue URLs gegenüber den bisherigen
+        # Neue URLs gegenüber dem bisherigen Set
         new_urls = [u for u in page_urls if u not in seen]
 
         if not new_urls:
@@ -90,11 +92,9 @@ def collect_all_cell_urls() -> list[str]:
             break
 
         print(f"[INFO] Gefundene neue Zellen auf Seite {page}: {len(new_urls)}")
+        seen.update(new_urls)
 
-        for u in new_urls:
-            seen.add(u)
-
-        # Kleine Pause, um höflich zu sein
+        # Kleine Pause für „höfliches“ Scraping
         time.sleep(1.0)
 
         page += 1
